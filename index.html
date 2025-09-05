@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tic-Tac-Toe Game Mode</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background-color: rgb(152, 46, 141);
+  }
+  h1 {
+    margin-top: 20px;
+  }
+  #modeSelection {
+    margin-top: 20px;
+  }
+  #gameBoard {
+    display: grid;
+    grid-template-columns: repeat(3, 100px);
+    grid-template-rows: repeat(3, 100px);
+    gap: 5px;
+    justify-content: center;
+    margin-top: 20px;
+  }
+  .cell {
+    background-color: rgb(23, 34, 80);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(68, 211, 36, 0.2);
+  }
+  #status {
+    margin-top: 20px;
+    font-size: 1.2rem;
+  }
+  #restartBtn {
+    margin-top: 15px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    border: none;
+    background-color: #487db5;
+    color: rgb(238, 234, 234);
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  #restartBtn:hover {
+    background-color: #2c86e6;
+  }
+</style>
+</head>
+<body>
+
+<h1>Tic-Tac-Toe</h1>
+
+<div id="modeSelection">
+  <button onclick="startGame('pvp')">Player vs Player</button>
+  <button onclick="startGame('pvai')">Player vs AI</button>
+</div>
+
+<div id="gameBoard" style="display:none;"></div>
+<div id="status"></div>
+<button id="restartBtn" style="display:none;">Restart Game</button>
+
+<script>
+  const board = document.getElementById('gameBoard');
+  const statusDisplay = document.getElementById('status');
+  const restartBtn = document.getElementById('restartBtn');
+
+  let cells, currentPlayer, gameActive, gameMode;
+  const human = 'X';
+  const ai = 'O';
+
+  const winningCombinations = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6]
+  ];
+
+  function startGame(mode) {
+    gameMode = mode;
+    cells = Array(9).fill('');
+    currentPlayer = human;
+    gameActive = true;
+    document.getElementById('modeSelection').style.display = 'none';
+    board.style.display = 'grid';
+    restartBtn.style.display = 'inline-block';
+    statusDisplay.textContent = "Player X's Turn";
+    renderBoard();
+  }
+
+  function handleClick(index) {
+    if (cells[index] !== '' || !gameActive) return;
+
+    cells[index] = currentPlayer;
+    renderBoard();
+
+    if (checkWin(currentPlayer)) {
+      statusDisplay.textContent = `Player ${currentPlayer} Wins! 🎉`;
+      gameActive = false;
+      return;
+    }
+
+    if (cells.every(cell => cell !== '')) {
+      statusDisplay.textContent = "It's a Draw!";
+      gameActive = false;
+      return;
+    }
+
+    if (gameMode === 'pvp') {
+      currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+      statusDisplay.textContent = `Player ${currentPlayer}'s Turn`;
+    } else if (gameMode === 'pvai') {
+      if (currentPlayer === human) {
+        currentPlayer = ai;
+        statusDisplay.textContent = "AI's Turn...";
+        setTimeout(aiMove, 500);
+      }
+    }
+  }
+
+  function aiMove() {
+    let move = findBestMove();
+    if (move !== null) {
+      cells[move] = ai;
+    }
+    renderBoard();
+
+    if (checkWin(ai)) {
+      statusDisplay.textContent = "AI Wins! 🤖";
+      gameActive = false;
+      return;
+    }
+
+    if (cells.every(cell => cell !== '')) {
+      statusDisplay.textContent = "It's a Draw!";
+      gameActive = false;
+      return;
+    }
+
+    currentPlayer = human;
+    statusDisplay.textContent = "Your Turn (X)";
+  }
+
+  function findBestMove() {
+    // 1. If AI can win
+    for (let combo of winningCombinations) {
+      let [a, b, c] = combo;
+      if (cells[a] === ai && cells[b] === ai && cells[c] === '') return c;
+      if (cells[a] === ai && cells[c] === ai && cells[b] === '') return b;
+      if (cells[b] === ai && cells[c] === ai && cells[a] === '') return a;
+    }
+    // 2. If AI needs to block
+    for (let combo of winningCombinations) {
+      let [a, b, c] = combo;
+      if (cells[a] === human && cells[b] === human && cells[c] === '') return c;
+      if (cells[a] === human && cells[c] === human && cells[b] === '') return b;
+      if (cells[b] === human && cells[c] === human && cells[a] === '') return a;
+    }
+    // 3. Else random
+    let emptyCells = cells.map((val, idx) => val === '' ? idx : null).filter(v => v !== null);
+    return emptyCells.length > 0 ? emptyCells[Math.floor(Math.random() * emptyCells.length)] : null;
+  }
+
+  function checkWin(player) {
+    return winningCombinations.some(combo => combo.every(index => cells[index] === player));
+  }
+
+  function renderBoard() {
+    board.innerHTML = '';
+    cells.forEach((cell, index) => {
+      const cellDiv = document.createElement('div');
+      cellDiv.classList.add('cell');
+      cellDiv.textContent = cell;
+      cellDiv.addEventListener('click', () => handleClick(index));
+      board.appendChild(cellDiv);
+    });
+  }
+
+  function restartGame() {
+    document.getElementById('modeSelection').style.display = 'block';
+    board.style.display = 'none';
+    restartBtn.style.display = 'none';
+    statusDisplay.textContent = '';
+  }
+
+  restartBtn.addEventListener('click', restartGame);
+</script>
+
+</body>
+</html>
